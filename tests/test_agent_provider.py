@@ -39,20 +39,25 @@ def test_gemini_tool_loop_and_comment_revision(client, isolated_database, monkey
         code = next((o for o in outputs if o.get("kind") == "code"), None)
         review = next((o for o in outputs if "selected_comments" in o), None)
         seed = json.loads(next(m["content"] for m in body["messages"] if m["role"] == "user").split("\n", 1)[1])
-        if seed["selected_comment_ids"] and not review:
+        if seed["has_ai_base"] and not review:
             return reply("get_review_context", {}, len(requests))
         if review:
-            evidence_id, reference = next(iter(review["base_evidence"].items()))
+            evidence_id, reference = next((eid, item) for eid, item in review["base_evidence"].items() if item["kind"] == "code")
             code = {"evidence_id": evidence_id, **reference}
         if not code:
             return reply("read_code", {"file_id": system["file_ids"][0], "start_line": 1, "end_line": 12}, len(requests))
         claims = [{"claim_id": "c1", "statement": "Machine은 추상 클래스이며 Mine이 상속한다.", "basis": "code_observation", "status": "supported", "evidence_ids": [code["evidence_id"]]}]
         prose = "Machine은 공통 기반 클래스이며 Tick을 추상 메서드로 선언합니다. Mine은 Machine을 상속하고 Tick을 재정의해 Gather를 호출합니다. 현재 코드에서 확인할 수 있는 구조를 기준으로 공통 계약과 개별 동작이 나뉜다는 점을 살펴볼 수 있습니다. " * 2
         prose += "\n\nMachine에는 MachineSO 타입의 definition 필드가 있고 Tier 프로퍼티가 definition.Tier를 읽습니다. 기계 설정을 데이터 객체를 통해 참조하는 형태를 확인할 수 있지만, 실제 설정 값과 생성 경로를 확정하려면 데이터 클래스 및 할당 코드를 추가로 확인해야 합니다. " * 2
-        if review:
+        if review and review["selected_comments"]:
             c = review["selected_comments"][0]
             claims.append({"claim_id": "c2", "statement": c["text"], "basis": "user_statement", "status": "supported", "evidence_ids": [c["evidence_id"]]})
             prose += "\n\n사용자는 다음과 같이 개발 배경을 보완했습니다: " + c["text"]
+        elif review:
+            for eid, reference in review["base_evidence"].items():
+                if reference["kind"] == "comment":
+                    claims.append({"claim_id": "c2", "statement": reference["text"], "basis": "user_statement", "status": "supported", "evidence_ids": [eid]})
+                    prose += "\n\n사용자가 앞서 확인한 개발 배경: " + reference["text"]
         doc = {"title": "기계 시스템", "summary": "코드 확인 결과", "blocks": [{"block_id": "design", "section": "implementation", "title": "공통 기반과 개별 구현", "text": prose, "claim_ids": [c["claim_id"] for c in claims]}],
                "claims": claims, "open_questions": ["기계를 추가할 때 실제로 변경한 파일은 무엇인가요?"], "applied_comment_ids": seed["selected_comment_ids"]}
         return reply("submit_explanation", doc, len(requests))
@@ -81,6 +86,21 @@ def test_gemini_tool_loop_and_comment_revision(client, isolated_database, monkey
         assert job.result["ai_calls"] == 2 and job.result["tool_calls"] == 1
         budget = db.scalar(select(Budget))
         assert budget.used_tokens == 800 and budget.reserved_tokens == 0
+
+    # Rewriting with no newly selected comments keeps an already-cited intent,
+    # while excluding other comments that have not been selected for application.
+    send(client, "POST", base + "/comments", {"base_revision_id": revisions[0]["id"], "text": "아직 반영하지 않은 별도 의견", "kind": "intent"})
+    rewrite = send(client, "POST", base + "/generate")
+    assert rewrite.status_code == 202
+    worker.execute_job(*worker.claim_job())
+    rewritten = send(client, "GET", base + "/revisions").json()["revisions"]
+    assert [r["number"] for r in rewritten] == [4, 3, 2, 1]
+    assert rewritten[0]["parent_id"] == revisions[0]["id"]
+    assert rewritten[0]["comment_ids"] == []
+    assert rewritten[1]["document"] == revisions[0]["document"]
+    assert comment["text"] in rewritten[0]["document"]["blocks"][0]["text"]
+    assert f"comment:{comment['id']}" in rewritten[0]["evidence"]
+    assert "아직 반영하지 않은 별도 의견" not in json.dumps(rewritten[0]["document"], ensure_ascii=False)
 
 
 def test_gemini_schema_expands_refs():

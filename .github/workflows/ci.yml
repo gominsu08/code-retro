@@ -53,6 +53,7 @@ jobs:
         working-directory: web
         run: |
           npm ci --no-fund --no-audit
+          npm test
           npm run build
       - name: Build and smoke test production container
         run: |

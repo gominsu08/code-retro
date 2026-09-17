@@ -12,7 +12,7 @@ test('공개 저장소 연결 → 실제 코드 분석 → 코멘트 → 검토 
   await expect(page.getByRole('heading', { name: '어디까지 살펴볼까요?' })).toBeVisible({ timeout: 90_000 });
   await expect(page.locator('.scope-count strong')).not.toHaveText('0');
   await page.screenshot({ path: testInfo.outputPath('02-scope-desktop.png'), fullPage: true });
-  await page.getByLabel('AI 상세 설명 함께 생성').uncheck();
+  await page.getByLabel('AI 회고 설명 함께 생성').uncheck();
   await page.getByRole('button', { name: '시스템 분석 시작' }).click();
   await expect(page.locator('.system-entry').first()).toBeVisible({ timeout: 120_000 });
   const machine = page.locator('.system-entry').filter({ hasText: /Machine/ }).first();

@@ -60,7 +60,7 @@ class GeminiProvider:
         # function carries the document schema without enabling that combination.
         tools = [{"type": "function", "function": {"name": t["name"], "description": t["description"],
                   **({"parameters": gemini_schema(t["parameters"])} if t["parameters"].get("properties") else {})}} for t in request["tools"]]
-        tools.append({"type": "function", "function": {"name": "submit_explanation", "description": "코드 확인을 마친 상세 설명을 최종 제출한다. 다른 도구와 동시에 호출하지 않는다.",
+        tools.append({"type": "function", "function": {"name": "submit_explanation", "description": "코드 확인을 마친 간결한 개발 회고를 최종 제출한다. 다른 도구와 동시에 호출하지 않는다.",
                                                           "parameters": gemini_schema(request["text"]["format"]["schema"])}})
         messages = chat_messages(request["instructions"] + "\n최종 설명은 반드시 submit_explanation 도구의 인자로 제출한다. 먼저 read_code로 근거를 읽고, 수정 작업에서는 get_review_context를 호출한다.", request["input"])
         response = self.client.chat.completions.create(model=request["model"], messages=messages, tools=tools, tool_choice="auto", max_tokens=request["max_output_tokens"], temperature=0.2)

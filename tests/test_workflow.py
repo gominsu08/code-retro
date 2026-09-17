@@ -129,11 +129,23 @@ def test_ai_tool_scope_and_evidence_validation(client, isolated_database):
     assert initial_review["requires_code_read"] and not context.evidence
     result = context.call("read_code", '{"file_id":"' + s["file_ids"][0] + '","start_line":1,"end_line":10}')
     assert result["evidence_id"] in context.evidence
-    doc = {"title": "Machine", "summary": "구조", "blocks": [{"block_id": "b1", "section": "implementation", "title": "구현", "text": "코드에서 추상 클래스와 상속을 확인했습니다. " * 12 + "\n\n" + "동작 본문과 데이터 필드를 확인해야 합니다. " * 12, "claim_ids": ["c1"]}],
+    short_prose = ("기계마다 필요한 동작을 같은 틀에서 다루도록 Machine을 공통 기반으로 둔 구조입니다. "
+                   "개별 기계는 이를 상속하고 Tick을 구현하는 방식으로 구성되어 있습니다.\n\n"
+                   "기본 클래스는 동작의 틀을 정하고 실제 처리는 각 기계에 나눠 둡니다. "
+                   "새 기계를 추가할 때 같은 형태로 구현하려는 구조로 보이며, 당시 의도는 직접 확인이 필요합니다.")
+    assert 120 <= len(short_prose) < 350
+    doc = {"title": "Machine", "summary": "구조", "blocks": [{"block_id": "b1", "section": "implementation", "title": "구현", "text": short_prose, "claim_ids": ["c1"]}],
            "claims": [{"claim_id": "c1", "statement": "Machine이 추상 클래스다", "basis": "code_observation", "status": "supported", "evidence_ids": [result["evidence_id"]]}],
            "open_questions": [], "applied_comment_ids": []}
     accepted, evidence = validate_document(doc, context)
     assert accepted["title"] == "Machine" and evidence
+    doc["blocks"][0]["text"] = short_prose.replace("\n\n", " ")
+    with pytest.raises(ValueError, match="회고 문단"):
+        validate_document(doc, context)
+    doc["blocks"][0]["text"] = "공통 기반입니다.\n\n상속합니다."
+    with pytest.raises(ValueError, match="회고 문단"):
+        validate_document(doc, context)
+    doc["blocks"][0]["text"] = short_prose
     doc["claims"][0]["evidence_ids"] = ["code:invented:1:2"]
     with pytest.raises(ValueError, match="근거"):
         validate_document(doc, context)
