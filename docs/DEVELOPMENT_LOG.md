@@ -45,8 +45,16 @@ Dockerfile과 무료 Render 웹 서비스 구성을 준비했다. 사용자가 �
 
 [GitHub Actions](https://github.com/gominsu08/code-retro/actions/runs/35170954970)에서 Linux SQLite 26개·PostgreSQL 27개 테스트가 통과했다. PostgreSQL에서는 테스트별 독립 스키마를 사용하며, 요청 한도의 경쟁 상황과 기존 저장·취소·버전 흐름을 함께 검사했다. Alembic upgrade/check와 실제 Docker 컨테이너의 API·worker·웹 화면 검사도 통과했다.
 
-Render Free 웹 서비스와 Neon Free PostgreSQL 18을 Ohio 지역에 연결했다. [공개 주소](https://code-retro-rxox.onrender.com/)에서 HTTPS 응답과 정상 상태를 확인했다. 실제 서비스 주소에 붙은 접미사를 `PUBLIC_BASE_URL`에도 반영한 뒤 Secure·HttpOnly 쿠키와 외부 출처 요청 차단을 검증했다. Gemini 키 교체와 실제 공개 AI 검증은 이어서 진행한다.
+Render Free 웹 서비스와 Neon Free PostgreSQL 18을 Ohio 지역에 연결했다. [공개 주소](https://code-retro-rxox.onrender.com/)에서 HTTPS 응답과 정상 상태를 확인했다. 실제 서비스 주소에 붙은 접미사를 `PUBLIC_BASE_URL`에도 반영한 뒤 Secure·HttpOnly 쿠키와 외부 출처 요청 차단을 검증했다. 이 시점에는 실제 공개 AI 검증이 남아 있었다.
 
 공개 환경의 초기 수집 중 파일마다 HTTP 클라이언트를 만드는 반복 작업을 확인했다. [HTTPX 공식 API](https://www.python-httpx.org/api/#client)의 스레드 공유 지원을 확인하고 한 분석 작업에서 연결 풀을 재사용하도록 수정했다. 로컬 및 [후속 Linux·PostgreSQL·Docker CI](https://github.com/gominsu08/code-retro/actions/runs/35171364895)가 통과해 수정 버전을 배포했다.
 
-공개 브라우저에서 112개 파일·30개 시스템을 수집하고 Machine 원문 조회, 검증용 코멘트, 검토와 14,008자 Markdown 다운로드를 확인했다. 내장 브라우저의 다운로드 이벤트 대기는 시간 초과했지만 실제 Downloads 파일이 생성되었고 미리보기와 길이가 일치했다. 컨테이너 재배포 후에도 같은 세션의 프로젝트·코멘트·검토 상태가 보존되었다. 공개 AI는 새 운영 키 파일 저장을 기다리며 비활성 상태로 유지한다.
+공개 브라우저에서 112개 파일·30개 시스템을 수집하고 Machine 원문 조회, 검증용 코멘트, 검토와 14,008자 Markdown 다운로드를 확인했다. 내장 브라우저의 다운로드 이벤트 대기는 시간 초과했지만 실제 Downloads 파일이 생성되었고 미리보기와 길이가 일치했다. 컨테이너 재배포 후에도 같은 세션의 프로젝트·코멘트·검토 상태가 보존되었다. 초기 배포에서는 공개 AI를 비활성 상태로 두었다.
+
+## 2026-09-17 · 공개 AI와 다른 기기 확인
+
+사용자가 현재 Gemini 키의 계속 사용을 요청했다. 실제 응답(HTTP 200)을 확인한 뒤 Render의 비밀 환경 변수에 연결하고 `AI_ENABLED=true`로 저장·재배포했다. 키 값은 Git·문서에 넣지 않았으며 임시 전달 파일은 제거했다.
+
+공개 URL에서 Machine v2의 실제 설명 생성과 강조 코멘트를 반영한 v3가 성공했다. 코드 근거를 열어보니 `MachineSO`에 채집 시간 필드가 없는데 v3 본문이 이를 설정 데이터에 포함했다. 내용 수정 코멘트로 원문 재확인을 요청했고 v4에서는 `Machine`의 상수 주기와 `GetTierToValue`에 따른 누적량 갱신으로 본문이 정정되었다. 기존 버전들은 보존되었다. 이 사례는 코드 위치 검증과 문장 의미 검증이 다르며 사용자 검토가 필요함을 보여준다.
+
+최종 v4 본문은 585자·2개 문단이다. 코드 원문을 대조하고 검토 표시 후 Markdown을 내려받았다. 미리보기와 실제 파일은 모두 3,824자이며 고정 커밋의 코드 URL 10개를 포함한다. 사용자는 다른 기기에서도 공개 주소 접속과 AI 설명 생성을 완료했다고 확인했다. 장시간 유휴 복귀와 진행 중 작업 중단 복구의 실서비스 시험은 추가 운영 확인 항목으로 남겼다.
