@@ -1,0 +1,16 @@
+export type Job = { id: string; project_id: string; kind: string; status: string; stage: string; progress: { completed?: number; total?: number; failed_files?: number }; result: Record<string, unknown>; error: { code: string; message: string } | null; attempts: number; available_at: number; updated_at: number };
+export type Ownership = { status: 'unknown' | 'mine' | 'shared' | 'other'; account: string; note: string };
+export type Scope = { selected_file_ids: string[]; classifications: Record<string, string>; attribution: Record<string, Ownership> };
+export type Project = { id: string; name: string; repo_url: string; github_username: string; project_type: 'solo' | 'team'; ref: string; config_version: number; current_run_id: string | null; created_at: number; scope: Scope; snapshot: { id: string; ref: string; commit_sha: string; metadata: { full_name: string; description: string; user_exists: boolean; identity_checked: string }; coverage: { tree_complete: boolean; uncollected_paths: string[] } } | null; jobs: Job[] };
+export type SourceFile = { id: string; path: string; size: number; category: string; reason: string; error: string | null; collected: boolean; namespaces: string[]; symbol_count: number; parse_errors: boolean };
+export type Evidence = { kind: string; file_id?: string; path?: string; commit_sha?: string; start_line?: number; end_line?: number; url?: string; text?: string; sha?: string; author_login?: string };
+export type Claim = { claim_id: string; statement: string; basis: string; status: string; evidence_ids: string[] };
+export type Block = { block_id: string; section: string; title: string; text: string; claim_ids: string[] };
+export type Revision = { id: string; system_id: string; number: number; parent_id: string | null; document: { title: string; summary: string; blocks: Block[]; claims: Claim[]; open_questions: string[]; applied_comment_ids: string[] }; evidence: Record<string, Evidence>; comment_ids: string[]; source: string; model: string; reviewed: boolean; stale: boolean; created_at: number };
+export type System = { id: string; run_id: string; name: string; group_key: string; file_ids: string[]; version: number; summary: { namespaces: string[]; note: string }; revision: Revision | null };
+export type Comment = { id: string; root_id: string; version: number; base_revision_id: string; block_id: string | null; text: string; kind: string; created_at: number; deleted: boolean };
+export type Session = { csrf_token: string; session_id: string; capabilities: { ai_enabled: boolean; model: string | null; max_files: number; max_total_bytes: number } };
+export type Code = SourceFile & { content: string; start_line: number; end_line: number; line_count: number; commit_sha: string; symbols: { name: string; kind: string; start_line: number; end_line: number }[] };
+export const activeStatuses = ['queued', 'running', 'waiting_retry', 'cancel_requested'];
+export const categoryLabels: Record<string, string> = { project: '프로젝트 코드', external: '외부 코드', generated: '자동 생성', uncertain: '확인 필요', unsupported: '지원 제외', oversize: '크기 초과' };
+export const ownershipLabels: Record<string, string> = { unknown: '담당 미확인', mine: '내 코드', shared: '공동 작업', other: '다른 참여자' };

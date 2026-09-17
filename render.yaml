@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: code-retro
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    autoDeployTrigger: "off"
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: AI_PROVIDER
+        value: gemini
+      - key: AI_ENABLED
+        value: "true"
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: AI_DAILY_TOKEN_LIMIT
+        value: "200000"
+      - key: GLOBAL_JOB_LIMIT
+        value: "1"
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
+      - key: GLOBAL_PROJECT_LIMIT
+        value: "30"
+      - key: DATABASE_LIMIT_BYTES
+        value: "314572800"
