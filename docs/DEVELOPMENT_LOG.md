@@ -36,3 +36,17 @@ AI는 범위가 제한된 읽기 도구 7개를 선택해서 호출한다. 도�
 Dockerfile과 무료 Render 웹 서비스 구성을 준비했다. 사용자가 먼저 로컬을 확인하기로 했으므로 계정 연결·공개 배포·GitHub 업로드는 진행하지 않았다. PostgreSQL과 Linux 컨테이너 실동작도 아직 검증 전이다.
 
 이 기록은 개발·시험 기록이다. 사용자의 실사용 후기나 실제 프로젝트 개발 성과를 대신 작성한 내용이 아니다.
+
+## 2026-09-17 · 무료 공개 배포
+
+사용자가 Render·Neon 가입과 공개 저장소 이름 `code-retro`를 확정했다. [공개 저장소](https://github.com/gominsu08/code-retro)에 비밀 파일과 로컬 데이터가 제외된 코드를 게시했다. GitHub CLI에 workflow 권한이 없어 자동 검증 파일의 최초 push가 거절되었고, 사용자의 추가 인증 후 파일을 게시했다.
+
+공개 운영을 위해 IP 주소를 원문 대신 HMAC으로 구분하는 요청 제한, 1 MiB 본문 제한, 프로젝트 수·DB 용량 상한을 적용했다. 만료 세션과 삭제 후 7일 지난 프로젝트를 정리하되 진행 중인 작업은 보호한다. worker heartbeat를 상태 API에서 검사하여 HTTP 프로세스만 살아 있는 상태를 정상으로 표시하지 않도록 했다.
+
+[GitHub Actions](https://github.com/gominsu08/code-retro/actions/runs/35170954970)에서 Linux SQLite 26개·PostgreSQL 27개 테스트가 통과했다. PostgreSQL에서는 테스트별 독립 스키마를 사용하며, 요청 한도의 경쟁 상황과 기존 저장·취소·버전 흐름을 함께 검사했다. Alembic upgrade/check와 실제 Docker 컨테이너의 API·worker·웹 화면 검사도 통과했다.
+
+Render Free 웹 서비스와 Neon Free PostgreSQL 18을 Ohio 지역에 연결했다. [공개 주소](https://code-retro-rxox.onrender.com/)에서 HTTPS 응답과 정상 상태를 확인했다. 실제 서비스 주소에 붙은 접미사를 `PUBLIC_BASE_URL`에도 반영한 뒤 Secure·HttpOnly 쿠키와 외부 출처 요청 차단을 검증했다. Gemini 키 교체와 실제 공개 AI 검증은 이어서 진행한다.
+
+공개 환경의 초기 수집 중 파일마다 HTTP 클라이언트를 만드는 반복 작업을 확인했다. [HTTPX 공식 API](https://www.python-httpx.org/api/#client)의 스레드 공유 지원을 확인하고 한 분석 작업에서 연결 풀을 재사용하도록 수정했다. 로컬 및 [후속 Linux·PostgreSQL·Docker CI](https://github.com/gominsu08/code-retro/actions/runs/35171364895)가 통과해 수정 버전을 배포했다.
+
+공개 브라우저에서 112개 파일·30개 시스템을 수집하고 Machine 원문 조회, 검증용 코멘트, 검토와 14,008자 Markdown 다운로드를 확인했다. 내장 브라우저의 다운로드 이벤트 대기는 시간 초과했지만 실제 Downloads 파일이 생성되었고 미리보기와 길이가 일치했다. 컨테이너 재배포 후에도 같은 세션의 프로젝트·코멘트·검토 상태가 보존되었다. 공개 AI는 새 운영 키 파일 저장을 기다리며 비활성 상태로 유지한다.
