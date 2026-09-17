@@ -134,21 +134,22 @@ def analyze(job_id, token):
     if not existing_run_id:
         progress(job_id, token, "선택한 C# 파일 수집·구문 분석 중", completed=0, total=len(files))
         completed, errors = 0, []
-        def collect(file):
+        def collect(file, github):
             if file.content is not None and file.parsed:
                 return file.id, file.content, file.encoding, file.parsed, None
             for attempt in range(2):
                 try:
-                    with GitHubClient(settings) as github:
-                        content, encoding = github.read_file(project.repo_owner, project.repo_name, snapshot.commit_sha, file.path, file.blob_sha)
+                    content, encoding = github.read_file(project.repo_owner, project.repo_name, snapshot.commit_sha, file.path, file.blob_sha)
                     return file.id, content, encoding, parse_csharp(content, file.id), None
                 except AppError as exc:
                     if attempt == 0 and exc.code == "github_network":
                         shutdown.wait(1)
                         continue
                     return file.id, None, None, {}, exc
-        with ThreadPoolExecutor(max_workers=6) as pool:
-            futures = [pool.submit(collect, f) for f in files]
+        # HTTPX Client is thread-safe; reuse TLS contexts and pooled connections
+        # for this job instead of rebuilding both clients for every source file.
+        with GitHubClient(settings) as github, ThreadPoolExecutor(max_workers=6) as pool:
+            futures = [pool.submit(collect, f, github) for f in files]
             try:
                 for future in as_completed(futures):
                     file_id, content, encoding, parsed, error = future.result()
